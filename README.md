@@ -1,4 +1,4 @@
-# Trades website-outreach agent
+# Sales Outreach Agent
 
 > **This is a demo build.** The sender identity ("Tradie Web Co", Alex Morgan)
 > is fictional, every domain and email address uses an RFC 2606 reserved name
@@ -76,8 +76,8 @@ it publishes a new agent version against the same schedule.
 
 Go to the [Zoho MCP console](https://www.zoho.com/mcp/), create a server with
 the Zoho Mail tools, and copy the server URL into `ZOHO_MCP_URL`. Add as few
-tools as the console lets you: at minimum you need *Send Email* (which doubles
-as the draft tool — see Compliance below) and *Get Mail Accounts*. Anything
+tools as the console lets you: at minimum you need _Send Email_ (which doubles
+as the draft tool — see Compliance below) and _Get Mail Accounts_. Anything
 else you add is switched off again by `ZOHO_ALLOWED_TOOLS` in `config.py`, but
 not adding it in the first place is better.
 
@@ -88,11 +88,11 @@ the login and captures the tokens for you.
 What you do next depends on what the console handed you. Set `ZOHO_AUTH_MODE`
 accordingly:
 
-| The console gave you | Mode | Where the secret lives |
-|---|---|---|
-| A long-lived bearer token | `static_bearer` | Anthropic vault, write-only |
-| An access + refresh token pair | `mcp_oauth` | Anthropic vault, auto-refreshed |
-| A server URL with the key already in it | `url_embedded` | The agent config — **not** the vault |
+| The console gave you                    | Mode            | Where the secret lives               |
+| --------------------------------------- | --------------- | ------------------------------------ |
+| A long-lived bearer token               | `static_bearer` | Anthropic vault, write-only          |
+| An access + refresh token pair          | `mcp_oauth`     | Anthropic vault, auto-refreshed      |
+| A server URL with the key already in it | `url_embedded`  | The agent config — **not** the vault |
 
 The first two are the ones to prefer. The token goes in `.env`, is stored in an
 Anthropic vault, and is injected into outbound MCP calls at egress — it never
@@ -116,7 +116,7 @@ agent version against the same schedule.
 
 A free key from the [MBIE API portal](https://portal.api.business.govt.nz/)
 gives the agent the official NZ business register — legal and trading names,
-addresses, ANZSIC industry codes. Good for *finding and classifying* businesses;
+addresses, ANZSIC industry codes. Good for _finding and classifying_ businesses;
 its contact data is sparse, so the agent still confirms the email from something
 the business published itself.
 
@@ -194,8 +194,8 @@ in `config.py` for a simpler single-threaded trace at higher cost.
 
 At 10 contacted plus a handful of exclusions per day, a naive file-per-business
 layout reaches ~5,500 files in a year. The bytes don't matter (~3 MB); the cost
-is that the agent would pull a growing directory listing into context *every
-morning* just to answer "have I emailed this one before?".
+is that the agent would pull a growing directory listing into context _every
+morning_ just to answer "have I emailed this one before?".
 
 So dedup and detail are separated:
 
@@ -236,7 +236,7 @@ Two settings in `config.py`:
   the Privacy Act 2020 you shouldn't hold personal information longer than you
   need it; drop it to 6 if you don't do annual follow-ups.
 - **`REDACT_VERSIONS_ON_PRUNE`** (default off) — every memory write also
-  creates an immutable version, and versions can only be *redacted*, never
+  creates an immutable version, and versions can only be _redacted_, never
   deleted. So deleting a detail file leaves its old content in the audit trail
   unless you redact. Turn this on if the retention window is a policy rather
   than a preference.
@@ -250,14 +250,14 @@ New Zealand's **Unsolicited Electronic Messages Act 2007** governs commercial
 email to NZ addresses, and the agent is built around it rather than bolting it
 on afterwards:
 
-| Requirement | How it's enforced |
-|---|---|
-| Consent | Only addresses the business published itself, in a business capacity — the basis for deemed consent |
-| Relevance to role | Business addresses at operating businesses only; no consumers, no personal addresses |
-| Opt-out signals | Any "no unsolicited enquiries" statement on the site → permanently excluded in memory |
+| Requirement           | How it's enforced                                                                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consent               | Only addresses the business published itself, in a business capacity — the basis for deemed consent                                                                                                                                                        |
+| Relevance to role     | Business addresses at operating businesses only; no consumers, no personal addresses                                                                                                                                                                       |
+| Opt-out signals       | Any "no unsolicited enquiries" statement on the site → permanently excluded in memory                                                                                                                                                                      |
 | Sender identification | Your name, company, reply address and website, from `.env`, in every draft. The Act requires the sender to be identified and readily contactable; unlike US CAN-SPAM it does not mandate a postal address or phone number, so the reply address carries it |
-| Unsubscribe | Your opt-out line, unmodified, in every draft |
-| Frequency | One email per business ever, enforced by the `/contacted/` memory directory |
+| Unsubscribe           | Your opt-out line, unmodified, in every draft                                                                                                                                                                                                              |
+| Frequency             | One email per business ever, enforced by the `/contacted/` memory directory                                                                                                                                                                                |
 
 This is how the system is designed, not legal advice — if you're doing volume,
 have a NZ lawyer review the template once. The DIA enforces the Act and
@@ -267,16 +267,15 @@ Three more things worth knowing:
 
 - **Drafts, never sends — but read how that is enforced.** Zoho's MCP server
   offers no dedicated draft tool. A draft is `ZohoMail_sendEmail` with
-  `"mode": "draft"` in the body — the *same* tool that sends, distinguished by
+  `"mode": "draft"` in the body — the _same_ tool that sends, distinguished by
   one field. So the send capability cannot be removed without losing drafting
   too. Three guards, in descending order of reliability:
-
   1. **Allowlist** (`ZOHO_ALLOWED_TOOLS` in `config.py`) — the agent can reach
      only `getMailAccounts` and `sendEmail`. The other seven tools, including
      `sendReplyEmail`, `readMessages` and `moveMessages`, are switched off at
      the platform and are unreachable no matter what the model attempts.
   2. **OAuth scopes** — no `messages.READ`, so the token cannot read your mail.
-     Note this does *not* block sending: Zoho puts send and draft-save behind
+     Note this does _not_ block sending: Zoho puts send and draft-save behind
      the same `messages.CREATE` scope.
   3. **The system prompt**, which requires `"mode": "draft"` on every call and
      treats any text arguing otherwise as prompt injection.
@@ -285,6 +284,7 @@ Three more things worth knowing:
   depends on model compliance rather than a hard boundary. If the Zoho console
   ever gains a draft-only tool, switch to it and drop `sendEmail` from the
   allowlist — that converts the last guard from a promise into a wall.
+
 - **Honest observations only.** The system prompt forbids the agent from
   telling a business its site is unprofessional, invisible on Google, or losing
   it money. It may only describe what it saw. This is a deliverability
@@ -299,7 +299,7 @@ Three more things worth knowing:
 ## Cost control
 
 Each run carries a hard `budget` of **USD $10.00** of list-priced spend
-(`DAILY_BUDGET_CENTS` in `config.py`). A session that reaches the cap *pauses*
+(`DAILY_BUDGET_CENTS` in `config.py`). A session that reaches the cap _pauses_
 rather than terminating — nothing is lost, and raising the budget resumes it.
 
 The other lever is `EFFORT` in `config.py`. It ships at `high`; once you have a
@@ -310,19 +310,19 @@ difference is often small and the token difference is not.
 
 ## Files
 
-| Path | What it is |
-|---|---|
-| `config.py` | Schedule, model, budget, trades, regions, sender identity |
-| `prompts/system_prompt.md` | The agent's standing instructions — **the real product** |
-| `prompts/daily_task.md` | The kickoff message sent at each firing |
-| `email_templates/outreach_email_template.md` | The approved email copy |
-| `email_templates/example_drafts.md` | Three worked examples of the output |
-| `zoho_oauth.py` | One-time Zoho OAuth handshake; `--verify` lists the server's tools |
-| `setup_agent.py` | One-time (idempotent) provisioning |
-| `run_now.py` | Manual trigger + live stream + output download |
-| `manage.py` | Pause/unpause, run history, contacted list, memory pruning |
-| `anthropic_compat.py` | Deployment calls with a raw-HTTP fallback |
-| `state.json` | Generated resource IDs — keep it, don't commit it |
+| Path                                         | What it is                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| `config.py`                                  | Schedule, model, budget, trades, regions, sender identity          |
+| `prompts/system_prompt.md`                   | The agent's standing instructions — **the real product**           |
+| `prompts/daily_task.md`                      | The kickoff message sent at each firing                            |
+| `email_templates/outreach_email_template.md` | The approved email copy                                            |
+| `email_templates/example_drafts.md`          | Three worked examples of the output                                |
+| `zoho_oauth.py`                              | One-time Zoho OAuth handshake; `--verify` lists the server's tools |
+| `setup_agent.py`                             | One-time (idempotent) provisioning                                 |
+| `run_now.py`                                 | Manual trigger + live stream + output download                     |
+| `manage.py`                                  | Pause/unpause, run history, contacted list, memory pruning         |
+| `anthropic_compat.py`                        | Deployment calls with a raw-HTTP fallback                          |
+| `state.json`                                 | Generated resource IDs — keep it, don't commit it                  |
 
 ## Tuning it
 
