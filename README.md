@@ -14,18 +14,54 @@ a website **as a draft in Zoho Mail** for you to review and send.
 Anthropic runs the loop, the schedule, and the sandbox. There is no server to
 host and no cron job on your machine.
 
-```
-deployment (cron: 0 9 * * *, Pacific/Auckland)
-   └─ fires a session each morning
-        ├─ agent: Claude Opus 5 + full agent toolset + Zoho MCP
-        ├─ workers: Haiku researchers, one per prospect (parallel)
-        ├─ memory store: who's been contacted, which trades are due
-        ├─ vault: Zoho MCP token + NZBN key (never enter the sandbox)*
-        └─ outputs: prospects-<date>.csv, drafts-<date>.md
-```
+```mermaid
+flowchart TB
+    start(["9:00am, every morning<br/>unattended<br/>nothing for you to host"])
 
-\* Unless your Zoho MCP URL carries its key inline — see
-[Getting the Zoho MCP URL](#getting-the-zoho-mcp-url).
+    coord["THE COORDINATOR<br/>Claude Opus 5<br/>plans the day<br/>briefs the fleet<br/>judges every lead<br/>writes every email"]
+
+    subgraph fleet["10 RESEARCH AGENTS · Claude Haiku · in parallel"]
+        direction LR
+        r1["Prospect 1"]
+        r2["Prospect 2"]
+        r3["Prospect 3"]
+        r4["Prospect 4"]
+        rn["+ 6 more"]
+    end
+
+    verdict{"What web presence<br/>do they have?"}
+    pass["10 emails written<br/>one honest observation<br/>each"]
+    drop["Already has a good site<br/>not pitched — and<br/>never will be"]
+    inbox(["10 DRAFTS IN YOUR INBOX<br/>skim, tweak, send<br/>the agent never sends"])
+
+    memory[("MEMORY<br/>never emails the same<br/>business twice")]
+    vault[["VAULT<br/>your mail login stays<br/>outside the sandbox"]]
+    budget["BUDGET<br/>hard $10 cap<br/>per morning"]
+
+    start ==> coord
+    coord ==> r1 & r2 & r3 & r4 & rn
+    r1 & r2 & r3 & r4 & rn ==> verdict
+    verdict -- "weak or missing" --> pass ==> inbox
+    verdict -- "already good" --> drop
+    vault -.- coord
+    budget -.- coord
+    memory -.- coord
+    drop -.-> memory
+    pass -.-> memory
+
+    classDef hero fill:#1f6feb,stroke:#0b3d91,color:#ffffff
+    classDef worker fill:#e8f0fe,stroke:#1f6feb,color:#0b3d91
+    classDef win fill:#e8f6ee,stroke:#1e8449,color:#145a32
+    classDef finish fill:#1e8449,stroke:#0e3b21,color:#ffffff
+    classDef stop fill:#fdecea,stroke:#c0392b,color:#7b241c
+    classDef chip fill:#fbf7ee,stroke:#b9770e,color:#7e5109
+    class coord hero
+    class r1,r2,r3,r4,rn worker
+    class pass win
+    class inbox finish
+    class drop stop
+    class memory,vault,budget chip
+```
 
 ---
 
@@ -165,6 +201,57 @@ ones worth sending. The agent never sends.
 
 The agent works down a ladder and stops at the first source that yields a
 qualified business:
+
+```mermaid
+flowchart TD
+    cron(["Deployment · daily 09:00<br/>Pacific/Auckland<br/>Anthropic runs the session"])
+
+    subgraph run["One session · Opus 5 coordinator · USD $10 budget cap"]
+        direction TB
+        slate["1 · Today's slate<br/>trades not used recently<br/>max 2 a trade, 3+ regions"]
+        find["2 · Discovery<br/>NZ web search, association<br/>member directories, NZBN"]
+        dedup{"3 · Contacted or<br/>excluded before?<br/>bounded grep over indexes"}
+        fan["4 · Research fan-out<br/>Haiku worker per prospect<br/>checks their web presence"]
+        weak{"5 · Website weak<br/>or absent?"}
+        addr{"6 · Address the business<br/>published itself?"}
+        compose["7 · Fill the template<br/>greeting, observation line<br/>nothing else moves"]
+        reject["Not a prospect<br/>good current site<br/>opt-out notice<br/>no published address<br/>too large, dormant"]
+    end
+
+    subgraph egress["Egress · the sandbox never sees the secrets"]
+        direction TB
+        vault[["Vault *<br/>Zoho token, NZBN key<br/>injected at request time"]]
+        mcp["8 · Zoho MCP toolset<br/>allowlist: getMailAccounts<br/>+ sendEmail, mode: draft"]
+    end
+
+    outputs["9 · Session outputs<br/>prospects-DATE.csv<br/>drafts-DATE.md"]
+    store[("Memory store<br/>contacted/index + detail<br/>excluded · rotation<br/>learnings")]
+    human(["Draft in Zoho Mail<br/>never sent<br/>you read, edit, press send"])
+
+    cron --> slate --> find --> dedup
+    dedup -- "seen it" --> reject
+    dedup -- "new" --> fan --> weak
+    weak -- "no, it's a good site" --> reject
+    weak -- "yes" --> addr
+    addr -- "no, only guessable" --> reject
+    addr -- "yes" --> compose --> mcp
+    vault -. " " .-> mcp
+    mcp --> human
+    mcp --> outputs
+    store -. "grep before researching" .-> dedup
+    outputs -. "index line + detail file" .-> store
+    reject -. "exclusion line" .-> store
+
+    classDef stop fill:#fdecea,stroke:#c0392b,color:#7b241c
+    classDef good fill:#e8f6ee,stroke:#1e8449,color:#145a32
+    classDef secret fill:#fdf3e0,stroke:#b9770e,color:#7e5109
+    class reject stop
+    class human good
+    class vault,mcp secret
+```
+
+\* Unless your Zoho MCP URL carries its key inline — see
+[Getting the Zoho MCP URL](#getting-the-zoho-mcp-url).
 
 1. **Slate selection** — reads `/niches/rotation.md` from memory and picks
    trades it hasn't used recently, max 2 per trade, across ≥3 regions.
